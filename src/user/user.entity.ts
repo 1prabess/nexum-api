@@ -23,6 +23,9 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: true })
   avatar?: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  refreshToken?: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
