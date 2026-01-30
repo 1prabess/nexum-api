@@ -4,11 +4,11 @@ import bcrypt from 'bcryptjs';
 
 @Injectable()
 export class BcryptProvider extends HashingProvider {
-  async hashValue(value: string): Promise<string> {
+  async hash(value: string): Promise<string> {
     return await bcrypt.hash(value, 10);
   }
 
-  async compareValue(value: string, hashValue: string): Promise<boolean> {
+  async compare(value: string, hashValue: string): Promise<boolean> {
     return await bcrypt.compare(value, hashValue);
   }
 }
