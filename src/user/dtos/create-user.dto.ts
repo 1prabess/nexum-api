@@ -18,11 +18,4 @@ export class CreateUserDto {
     example: 'strongPassword123',
   })
   password: string;
-
-  @ApiProperty({
-    description: 'Optional avatar URL for the user profile',
-    example: 'https://example.com/avatar.jpg',
-    required: false,
-  })
-  avatar?: string;
 }
