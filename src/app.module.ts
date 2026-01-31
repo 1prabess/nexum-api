@@ -6,6 +6,9 @@ import { ConfigModule } from '@nestjs/config';
 import type { ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import dbConfig from './configs/db.config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { FollowModule } from './follow/follow.module';
 
 @Module({
   imports: [
@@ -30,8 +33,14 @@ import dbConfig from './configs/db.config';
     }),
     UserModule,
     AuthModule,
+    FollowModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+  ],
 })
 export class AppModule {}
