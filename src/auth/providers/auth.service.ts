@@ -11,12 +11,13 @@ import type { ConfigType } from '@nestjs/config';
 import jwtConfig from 'src/configs/jwt.config';
 import { TokenPayload } from '../interfaces/token-payload.interface';
 import { JwtService } from '@nestjs/jwt';
+import { RegisterUserDto } from '../dtos/register-user.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject(forwardRef(() => UserService))
-    private readonly UserService: UserService,
+    private readonly userService: UserService,
     private readonly hashingProvider: HashingProvider,
     private readonly jwtService: JwtService,
 
@@ -51,13 +52,23 @@ export class AuthService {
       expiresIn: `${this.jwtConfiguration.refreshTokenTtlMs}ms`,
     });
 
-    await this.UserService.setRefreshToken(user.id, refreshToken);
+    await this.userService.setRefreshToken(user.id, refreshToken);
 
     return { accessToken, refreshToken };
   }
 
+  async register(registerUserDto: RegisterUserDto) {
+    const user = await this.userService.create(
+      registerUserDto.username,
+      registerUserDto.email,
+      registerUserDto.password,
+    );
+
+    return this.login(user);
+  }
+
   async validateUser(email: string, password: string): Promise<User> {
-    const user = await this.UserService.findByEmail(email);
+    const user = await this.userService.findByEmail(email);
 
     if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
@@ -79,7 +90,7 @@ export class AuthService {
     userId: number,
     refreshToken: string,
   ): Promise<User> {
-    const user = await this.UserService.findByIdWithRefreshToken(userId);
+    const user = await this.userService.findByIdWithRefreshToken(userId);
 
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException();
