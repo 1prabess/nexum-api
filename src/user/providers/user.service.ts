@@ -7,12 +7,14 @@ import { Repository } from 'typeorm';
 import { User } from '../user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HashingProvider } from 'src/auth/providers/hashing.provider';
+import { UpdateProfileDto } from '../dtos/update-profile.dto';
+import { UserDto } from '../dtos/user.dto';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
-    private readonly UserRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
 
     private readonly HashingProvider: HashingProvider,
   ) {}
@@ -41,36 +43,37 @@ export class UserService {
 
     const hashedPassword = await this.HashingProvider.hash(password);
 
-    const user = this.UserRepository.create({
+    const user = this.userRepository.create({
       username,
       email,
       password: hashedPassword,
       avatar,
     });
 
-    return await this.UserRepository.save(user);
+    return await this.userRepository.save(user);
   }
 
   async findAll() {
-    return await this.UserRepository.find();
+    return await this.userRepository.find();
   }
 
   async findById(userId: number): Promise<User | null> {
-    return await this.UserRepository.findOneBy({
+    return await this.userRepository.findOneBy({
       id: userId,
     });
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return await this.UserRepository.findOneBy({ email });
+    return await this.userRepository.findOneBy({ email });
   }
 
   async findByUserName(username: string): Promise<User | null> {
-    return await this.UserRepository.findOneBy({ username });
+    return await this.userRepository.findOneBy({ username });
   }
 
   async findByIdWithRefreshToken(userId: number): Promise<User | null> {
-    return await this.UserRepository.createQueryBuilder('user')
+    return await this.userRepository
+      .createQueryBuilder('user')
       .addSelect('user.refreshToken')
       .where('user.id = :id', { id: userId })
       .getOne();
@@ -87,6 +90,67 @@ export class UserService {
 
     user.refreshToken = hashedRefreshToken;
 
-    await this.UserRepository.save(user);
+    await this.userRepository.save(user);
+  }
+
+  async getProfile(userId: number): Promise<UserDto> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const { password, refreshToken, ...safeUser } = user;
+
+    return safeUser as UserDto;
+  }
+
+  async updateProfile(
+    userId: number,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<UserDto> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    if (
+      updateProfileDto.username &&
+      updateProfileDto.username !== user.username
+    ) {
+      const existingUserName = await this.findByUserName(
+        updateProfileDto.username,
+      );
+      if (existingUserName) {
+        throw new UnauthorizedException('Username already in use');
+      }
+    }
+
+    Object.assign(user, updateProfileDto);
+
+    const updatedUser = await this.userRepository.save(user);
+
+    const { password, refreshToken, ...safeUser } = updatedUser;
+
+    return safeUser as UserDto;
+  }
+
+  async incrementFollowingCount(userId: number) {
+    return await this.userRepository.increment(
+      { id: userId },
+      'followingCount',
+      1,
+    );
+  }
+
+  async incrementFollowersCount(userId: number) {
+    return await this.userRepository.increment(
+      { id: userId },
+      'followersCount',
+      1,
+    );
+  }
+
+  async decrementFollowingCount(userId: number) {
+    await this.userRepository.decrement({ id: userId }, 'followingCount', 1);
+  }
+
+  async decrementFollowersCount(userId: number) {
+    await this.userRepository.decrement({ id: userId }, 'followersCount', 1);
   }
 }
