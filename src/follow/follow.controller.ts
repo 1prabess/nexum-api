@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseBoolPipe,
   ParseIntPipe,
   Post,
   Query,
@@ -30,7 +29,9 @@ import {
 export class FollowController {
   constructor(private followService: FollowService) {}
 
+  // =====================================================
   // Follow a user
+  // =====================================================
   @Post('/:id/follow')
   @ResponseMessage('Followed successfully')
   @ApiOperation({ summary: 'Follow a user' })
@@ -46,7 +47,9 @@ export class FollowController {
     await this.followService.follow(user.id, targetId);
   }
 
+  // =====================================================
   // Unfollow a user
+  // =====================================================
   @Delete('/:id/follow')
   @ResponseMessage('Unfollowed successfully')
   @ApiOperation({ summary: 'Unfollow a user' })
@@ -62,7 +65,9 @@ export class FollowController {
     await this.followService.unfollow(user.id, targetId);
   }
 
+  // =====================================================
   // Get followers of a user
+  // =====================================================
   @Get('/:id/followers')
   @ResponseMessage('Followers fetched successfully')
   @ApiOperation({ summary: 'Get a list of followers for a user' })
@@ -101,7 +106,9 @@ export class FollowController {
     return this.followService.getFollowers({ userId, page, limit });
   }
 
+  // =====================================================
   // Get followings of a user
+  // =====================================================
   @Get('/:id/followings')
   @ResponseMessage('Followings fetched successfully')
   @ApiOperation({ summary: 'Get a list of followings for a user' })
