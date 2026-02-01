@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { Follow } from '../follow.entity';
 import { UserService } from 'src/user/providers/user.service';
 import { paginate } from 'src/common/utils/pagination';
-import { UserDto } from 'src/user/dtos/user.dto';
 import { User } from 'src/user/user.entity';
+import { IUserProfile } from 'src/common/interfaces/user-profile.interface';
 
 @Injectable()
 export class FollowService {
@@ -35,7 +35,7 @@ export class FollowService {
     });
 
     if (alreadyFollowing) {
-      return;
+      throw new BadRequestException('Already following');
     }
 
     const newFollow = this.followRepository.create({
@@ -88,7 +88,7 @@ export class FollowService {
       order: { createdAt: 'DESC' },
     });
 
-    const items: UserDto[] = followers.map((f) =>
+    const items: IUserProfile[] = followers.map((f) =>
       this.mapToUserDto(f.follower),
     );
 
@@ -120,7 +120,7 @@ export class FollowService {
       order: { createdAt: 'DESC' },
     });
 
-    const items: UserDto[] = followings.map((f) =>
+    const items: IUserProfile[] = followings.map((f) =>
       this.mapToUserDto(f.following),
     );
 
@@ -133,7 +133,7 @@ export class FollowService {
     });
   }
 
-  private mapToUserDto(user: User): UserDto {
+  private mapToUserDto(user: User): IUserProfile {
     const {
       id,
       username,
@@ -145,11 +145,14 @@ export class FollowService {
       followingCount,
       createdAt,
       updatedAt,
+      email,
     } = user;
+
     return {
       id,
       username,
       fullName,
+      email,
       bio,
       avatar,
       coverPhoto,
