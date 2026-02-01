@@ -1,4 +1,5 @@
 import { Follow } from 'src/follow/follow.entity';
+import { Post } from 'src/post/post.entity';
 import {
   Column,
   Entity,
@@ -48,6 +49,9 @@ export class User {
 
   @OneToMany(() => Follow, (follow) => follow.following)
   following: Follow[];
+
+  @OneToMany(() => Post, (post) => post.author)
+  posts: Post[];
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
