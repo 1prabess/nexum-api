@@ -8,7 +8,7 @@ import { User } from '../user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HashingProvider } from 'src/auth/providers/hashing.provider';
 import { UpdateProfileDto } from '../dtos/update-profile.dto';
-import { UserDto } from '../dtos/user.dto';
+import { IUserProfile } from 'src/common/interfaces/user-profile.interface';
 
 @Injectable()
 export class UserService {
@@ -93,19 +93,31 @@ export class UserService {
     await this.userRepository.save(user);
   }
 
-  async getProfile(userId: number): Promise<UserDto> {
-    const user = await this.findById(userId);
+  async getProfile(userId: number): Promise<IUserProfile> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
     if (!user) throw new NotFoundException('User not found');
 
-    const { password, refreshToken, ...safeUser } = user;
-
-    return safeUser as UserDto;
+    return {
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      bio: user.bio,
+      coverPhoto: user.coverPhoto,
+      avatar: user.avatar,
+      email: user.email,
+      followersCount: user.followersCount,
+      followingCount: user.followingCount,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   async updateProfile(
     userId: number,
     updateProfileDto: UpdateProfileDto,
-  ): Promise<UserDto> {
+  ): Promise<void> {
     const user = await this.findById(userId);
     if (!user) throw new NotFoundException('User not found');
 
@@ -123,11 +135,7 @@ export class UserService {
 
     Object.assign(user, updateProfileDto);
 
-    const updatedUser = await this.userRepository.save(user);
-
-    const { password, refreshToken, ...safeUser } = updatedUser;
-
-    return safeUser as UserDto;
+    await this.userRepository.save(user);
   }
 
   async incrementFollowingCount(userId: number) {
