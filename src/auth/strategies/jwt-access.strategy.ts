@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
@@ -6,6 +6,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import jwtConfig from 'src/configs/jwt.config';
 import { TokenPayload } from '../interfaces/token-payload.interface';
 import { UserService } from 'src/user/providers/user.service';
+import { ICurrentUser } from 'src/common/interfaces/current-user.interface';
 
 @Injectable()
 export class JwtAccessTokenStrategy extends PassportStrategy(
@@ -26,7 +27,15 @@ export class JwtAccessTokenStrategy extends PassportStrategy(
     });
   }
 
-  validate(payload: TokenPayload) {
-    return this.userService.findById(payload.userId);
+  async validate(payload: TokenPayload): Promise<ICurrentUser> {
+    const user = await this.userService.findById(payload.userId);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const { id, username, email, fullName, avatar } = user;
+
+    return { id, username, email, fullName, avatar };
   }
 }
