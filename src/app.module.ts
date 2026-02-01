@@ -9,6 +9,8 @@ import dbConfig from './configs/db.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { FollowModule } from './follow/follow.module';
+import { PostModule } from './post/post.module';
+import { TagModule } from './tag/tag.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { FollowModule } from './follow/follow.module';
     UserModule,
     AuthModule,
     FollowModule,
+    PostModule,
+    TagModule,
   ],
   controllers: [AppController],
   providers: [
