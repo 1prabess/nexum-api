@@ -5,7 +5,7 @@ import { JwtAccessTokenAuthGuard } from 'src/auth/guards/jwt-access-auth.guard';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { ApiOperation } from '@nestjs/swagger';
 
-@Controller('tag')
+@Controller('tags')
 @UseGuards(JwtAccessTokenAuthGuard)
 export class TagController {
   constructor(private readonly tagService: TagService) {}
