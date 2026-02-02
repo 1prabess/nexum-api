@@ -11,7 +11,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   const config = new DocumentBuilder()
-    .setTitle('Nestjs Auth')
+    .setTitle('Nexum Api')
     .setDescription('API documentation')
     .setVersion('1.0')
     .build();
