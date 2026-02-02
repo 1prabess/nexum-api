@@ -1,3 +1,4 @@
+import { Community } from 'src/community/entities/community.entity';
 import { Tag } from 'src/tag/tag.entity';
 import { User } from 'src/user/user.entity';
 import {
@@ -30,6 +31,12 @@ export class Post {
   @ManyToMany(() => Tag, (tag) => tag.posts)
   @JoinTable()
   tags: Tag[];
+
+  @ManyToOne(() => Community, (community) => community.posts, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  community?: Community;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
