@@ -10,7 +10,7 @@ import {
 import { CommunityVisibility } from '../enums/community-visibility.enum';
 import { User } from 'src/user/user.entity';
 import { CommunityMember } from './community-member.entity';
-import { Post } from 'src/post/post.entity';
+import { Post } from 'src/post/entities/post.entity';
 
 @Entity('communities')
 export class Community {
