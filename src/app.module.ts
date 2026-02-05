@@ -12,6 +12,7 @@ import { FollowModule } from './follow/follow.module';
 import { PostModule } from './post/post.module';
 import { TagModule } from './tag/tag.module';
 import { CommunityModule } from './community/community.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { CommunityModule } from './community/community.module';
     PostModule,
     TagModule,
     CommunityModule,
+    CommentModule,
   ],
   controllers: [AppController],
   providers: [
