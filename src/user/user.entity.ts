@@ -1,7 +1,9 @@
+import { Comment } from 'src/comment/entities/comment.entity';
 import { CommunityMember } from 'src/community/entities/community-member.entity';
 import { Community } from 'src/community/entities/community.entity';
 import { Follow } from 'src/follow/follow.entity';
-import { Post } from 'src/post/post.entity';
+import { PostVote } from 'src/post/entities/post-vote.entity';
+import { Post } from 'src/post/entities/post.entity';
 import {
   Column,
   Entity,
@@ -60,6 +62,12 @@ export class User {
 
   @OneToMany(() => CommunityMember, (membership) => membership.user)
   communityMemberships: CommunityMember[];
+
+  @OneToMany(() => PostVote, (vote) => vote.user)
+  postVotes: PostVote[];
+
+  @OneToMany(() => Comment, (comment) => comment.author)
+  comments: Comment[];
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
