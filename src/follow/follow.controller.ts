@@ -9,9 +9,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { FollowService } from './providers/follow.service';
+import { FollowService } from './follow.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { User } from 'src/user/user.entity';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { JwtAccessTokenAuthGuard } from 'src/auth/guards/jwt-access-auth.guard';
 import {
@@ -21,6 +20,10 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import type { ICurrentUser } from 'src/common/interfaces/current-user.interface';
+import { ApiSuccessResponse } from 'src/common/decorators/api-success-response.decorator';
+import { UserResponseDto } from 'src/user/dtos/user-response.dto';
+import { PaginatedResponseDto } from 'src/common/dtos/pagination.dto';
 
 @ApiTags('Follow')
 @ApiBearerAuth()
@@ -29,10 +32,9 @@ import {
 export class FollowController {
   constructor(private followService: FollowService) {}
 
-  // =====================================================
-  // Follow a user
-  // =====================================================
+  // ------------------ FOLLOW USER ------------------
   @Post('/:id/follow')
+  @ApiSuccessResponse(null, { message: 'Followed successfully', noData: true })
   @ResponseMessage('Followed successfully')
   @ApiOperation({ summary: 'Follow a user' })
   @ApiParam({
@@ -41,16 +43,18 @@ export class FollowController {
     type: Number,
   })
   async follow(
-    @CurrentUser() user: User,
-    @Param('id') targetId: number,
+    @CurrentUser() user: ICurrentUser,
+    @Param('id', ParseIntPipe) targetId: number,
   ): Promise<void> {
     await this.followService.follow(user.id, targetId);
   }
 
-  // =====================================================
-  // Unfollow a user
-  // =====================================================
+  // ------------------ UNFOLLOW USER ------------------
   @Delete('/:id/follow')
+  @ApiSuccessResponse(null, {
+    message: 'Unfollowed successfully',
+    noData: true,
+  })
   @ResponseMessage('Unfollowed successfully')
   @ApiOperation({ summary: 'Unfollow a user' })
   @ApiParam({
@@ -59,16 +63,18 @@ export class FollowController {
     type: Number,
   })
   async unfollow(
-    @CurrentUser() user: User,
-    @Param('id') targetId: number,
+    @CurrentUser() user: ICurrentUser,
+    @Param('id', ParseIntPipe) targetId: number,
   ): Promise<void> {
     await this.followService.unfollow(user.id, targetId);
   }
 
-  // =====================================================
-  // Get followers of a user
-  // =====================================================
+  // ------------------ GET FOLLOWERS ------------------
   @Get('/:id/followers')
+  @ApiSuccessResponse(PaginatedResponseDto<UserResponseDto>, {
+    message: 'Followers fetched successfully',
+    paginatedItemsType: UserResponseDto,
+  })
   @ResponseMessage('Followers fetched successfully')
   @ApiOperation({ summary: 'Get a list of followers for a user' })
   @ApiParam({
@@ -89,7 +95,7 @@ export class FollowController {
     type: Number,
   })
   async getFollowers(
-    @Param('id') userId: number,
+    @Param('id', ParseIntPipe) userId: number,
     @Query(
       'page',
       new ParseIntPipe({ optional: true }),
@@ -106,10 +112,12 @@ export class FollowController {
     return this.followService.getFollowers({ userId, page, limit });
   }
 
-  // =====================================================
-  // Get followings of a user
-  // =====================================================
+  // ------------------ GET FOLLOWINGS ------------------
   @Get('/:id/followings')
+  @ApiSuccessResponse(PaginatedResponseDto<UserResponseDto>, {
+    message: 'Followings fetched successfully',
+    paginatedItemsType: UserResponseDto,
+  })
   @ResponseMessage('Followings fetched successfully')
   @ApiOperation({ summary: 'Get a list of followings for a user' })
   @ApiParam({
@@ -130,7 +138,7 @@ export class FollowController {
     type: Number,
   })
   async getFollowings(
-    @Param('id') userId: number,
+    @Param('id', ParseIntPipe) userId: number,
     @Query(
       'page',
       new ParseIntPipe({ optional: true }),
