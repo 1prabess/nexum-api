@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { CommunityOwnerResponseDto } from './community-owner-response.dto';
 import { CommunityVisibility } from '../enums/community-visibility.enum';
+import { CommunityMemberRole } from '../enums/community-member-role.enum';
 
 export class CommunityResponseDto {
   @ApiProperty({ example: 1 })
@@ -35,6 +36,16 @@ export class CommunityResponseDto {
   @Type(() => CommunityOwnerResponseDto)
   owner: CommunityOwnerResponseDto;
 
+  @ApiProperty({
+    example: [
+      { id: 1, name: 'nestjs' },
+      { id: 2, name: 'typescript' },
+    ],
+  })
+  @Expose()
+  @Type(() => TagInCommunityDto)
+  tags: TagInCommunityDto[];
+
   @ApiProperty({ example: '2026-02-18T09:12:32.842Z' })
   @Expose()
   createdAt: Date;
@@ -42,4 +53,31 @@ export class CommunityResponseDto {
   @ApiProperty({ example: '2026-02-18T09:12:32.842Z' })
   @Expose()
   updatedAt: Date;
+
+  @ApiProperty({ example: true })
+  @Expose()
+  isMember: boolean;
+
+  @ApiProperty({
+    example: CommunityMemberRole.ADMIN,
+    enum: CommunityMemberRole,
+    nullable: true,
+    required: false,
+  })
+  @Expose()
+  memberRole?: CommunityMemberRole | null;
+
+  @ApiProperty({ example: true })
+  @Expose()
+  canManageContent?: boolean;
+}
+
+export class TagInCommunityDto {
+  @ApiProperty({ example: 1 })
+  @Expose()
+  id: number;
+
+  @ApiProperty({ example: 'nestjs' })
+  @Expose()
+  name: string;
 }
