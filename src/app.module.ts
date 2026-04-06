@@ -13,6 +13,12 @@ import { PostModule } from './post/post.module';
 import { TagModule } from './tag/tag.module';
 import { CommunityModule } from './community/community.module';
 import { CommentModule } from './comment/comment.module';
+import { SearchModule } from './search/search.module';
+import { QuestionModule } from './question/question.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { RecommendationModule } from './recommendation/recommendation.module';
+import { AnswerModule } from './answer/answer.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -42,6 +48,12 @@ import { CommentModule } from './comment/comment.module';
     TagModule,
     CommunityModule,
     CommentModule,
+    SearchModule,
+    QuestionModule,
+    CloudinaryModule,
+    RecommendationModule,
+    AnswerModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [
