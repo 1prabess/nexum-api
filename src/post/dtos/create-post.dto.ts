@@ -22,9 +22,34 @@ export class CreatePostDto {
   title: string;
 
   @ApiProperty({
-    description: 'Content of the post',
+    description: 'Content of the post (Block JSON format)',
     minLength: 10,
-    example: 'This is the content of my post. It cannot be empty.',
+    example: JSON.stringify([
+      {
+        id: 'intro',
+        type: 'paragraph',
+        props: {},
+        content: [
+          {
+            type: 'text',
+            text: 'I migrated our NestJS API to module-first architecture and need feedback on folder structure.',
+            styles: {},
+          },
+        ],
+      },
+      {
+        id: 'details',
+        type: 'paragraph',
+        props: {},
+        content: [
+          {
+            type: 'text',
+            text: 'Current setup uses controllers, services, DTOs, and entity-level validation. Any improvements?',
+            styles: {},
+          },
+        ],
+      },
+    ]),
   })
   @IsString()
   @MinLength(10)
