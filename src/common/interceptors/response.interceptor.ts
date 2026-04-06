@@ -5,12 +5,15 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
-import { Response } from '../interfaces/response.interface';
+import { IResponse } from '../interfaces/response.interface';
 import { Reflector } from '@nestjs/core';
 import { RESPONSE_MESSAGE } from '../decorators/response-message.decorator';
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  IResponse<T>
+> {
   constructor(private readonly reflector: Reflector) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
