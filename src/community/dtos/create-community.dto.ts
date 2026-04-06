@@ -4,6 +4,9 @@ import {
   IsString,
   MaxLength,
   IsUrl,
+  IsArray,
+  ArrayNotEmpty,
+  IsInt,
 } from 'class-validator';
 import { CommunityVisibility } from '../enums/community-visibility.enum';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -29,7 +32,6 @@ export class CreateCommunityDto {
   description?: string;
 
   @ApiPropertyOptional({
-    description: 'Visibility of the community (public or private)',
     enum: CommunityVisibility,
     example: CommunityVisibility.PUBLIC,
   })
@@ -38,8 +40,7 @@ export class CreateCommunityDto {
   visibility?: CommunityVisibility;
 
   @ApiPropertyOptional({
-    description: 'URL of the community avatar image',
-    example: 'https://example.com/images/avatar.png',
+    example: 'https://example.com/avatar.png',
   })
   @IsString()
   @IsOptional()
@@ -47,11 +48,20 @@ export class CreateCommunityDto {
   avatar?: string;
 
   @ApiPropertyOptional({
-    description: 'URL of the community cover image',
-    example: 'https://example.com/images/cover.png',
+    example: 'https://example.com/cover.png',
   })
   @IsString()
   @IsOptional()
   @IsUrl()
   coverImage?: string;
+
+  @ApiProperty({
+    description: 'IDs of tags associated with the community',
+    example: [1, 3, 5],
+    type: [Number],
+  })
+  @IsArray()
+  @ArrayNotEmpty({ message: 'At least one tag is required' })
+  @IsInt({ each: true })
+  tagIds: number[];
 }
