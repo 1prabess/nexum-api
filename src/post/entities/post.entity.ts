@@ -26,6 +26,12 @@ export class Post {
   @Column({ type: 'text' })
   content: string;
 
+  @Column({ type: 'text' })
+  searchContent: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  searchVector: Record<string, number>;
+
   @ManyToOne(() => User, (user) => user.posts, {
     onDelete: 'CASCADE',
   })
@@ -37,7 +43,7 @@ export class Post {
 
   @ManyToOne(() => Community, (community) => community.posts, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: 'CASCADE',
   })
   community?: Community;
 
