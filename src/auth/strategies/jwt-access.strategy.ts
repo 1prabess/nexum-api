@@ -5,7 +5,7 @@ import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import jwtConfig from 'src/configs/jwt.config';
 import { TokenPayload } from '../interfaces/token-payload.interface';
-import { UserService } from 'src/user/providers/user.service';
+import { UserService } from 'src/user/user.service';
 import { ICurrentUser } from 'src/common/interfaces/current-user.interface';
 
 @Injectable()
