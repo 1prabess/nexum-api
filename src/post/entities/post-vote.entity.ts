@@ -8,7 +8,7 @@ import {
   Unique,
   CreateDateColumn,
 } from 'typeorm';
-import { VoteType } from '../enums/post-vote.enum';
+import { VoteType } from '../../common/enums/vote-type.enum';
 
 @Entity('post_votes')
 @Unique(['post', 'user'])
