@@ -1,6 +1,6 @@
 import { PaginationLinks, PaginationMeta } from './pagination.interface';
 
-export interface Response<T = unknown> {
+export interface IResponse<T = unknown> {
   status: 'success' | 'error';
   message: string;
   data?: T;
