@@ -1,0 +1,175 @@
+classDiagram
+  direction LR
+
+  class User {
+    +number id
+    +string username
+    +string email
+    +string fullName
+    +string bio
+    +string avatar
+    +string coverPhoto
+    +string password
+    +string refreshToken
+    +number followersCount
+    +number followingCount
+    +Date createdAt
+    +Date updatedAt
+  }
+
+  class Community {
+    +number id
+    +string name
+    +string description
+    +string avatar
+    +string coverImage
+    +CommunityVisibility visibility
+    +Date createdAt
+    +Date updatedAt
+  }
+
+  class CommunityMember {
+    +number id
+    +CommunityMemberRole role
+    +Date joinedAt
+    +Date updatedAt
+  }
+
+  class CommunityInvite {
+    +number id
+    +CommunityInviteStatus status
+    +Date createdAt
+  }
+
+  class Post {
+    +number id
+    +string title
+    +string content
+    +string searchContent
+    +Record searchVector
+    +number upvotes
+    +number downvotes
+    +Date createdAt
+    +Date updatedAt
+  }
+
+  class Question {
+    +number id
+    +string title
+    +string content
+    +string searchContent
+    +Record searchVector
+    +QuestionUrgency urgency
+    +number upvotes
+    +number downvotes
+    +number acceptedAnswerId
+    +Date createdAt
+    +Date updatedAt
+  }
+
+  class Comment {
+    +number id
+    +string content
+    +number upvotes
+    +number downvotes
+    +Date createdAt
+    +Date updatedAt
+  }
+
+  class Answer {
+    +number id
+    +string content
+    +number upvotes
+    +number downvotes
+    +boolean isAccepted
+    +Date createdAt
+    +Date updatedAt
+  }
+
+  class Tag {
+    +number id
+    +string name
+    +Date createdAt
+  }
+
+  class Follow {
+    +number id
+    +Date createdAt
+  }
+
+  class PostVote {
+    +number id
+    +VoteType type
+    +Date createdAt
+  }
+
+  class QuestionVote {
+    +number id
+    +VoteType type
+    +Date createdAt
+  }
+
+  class CommentVote {
+    +number id
+    +VoteType type
+    +Date createdAt
+  }
+
+  class AnswerVote {
+    +number id
+    +VoteType type
+  }
+
+  class Notification {
+    +number id
+    +NotificationType type
+    +NotificationEntityType entityType
+    +number entityId
+    +string message
+    +string targetUrl
+    +boolean isRead
+    +Date createdAt
+    +Date updatedAt
+  }
+
+  User "1" --> "0..*" Post : authors
+  User "1" --> "0..*" Question : authors
+  User "1" --> "0..*" Comment : authors
+  User "1" --> "0..*" Answer : authors
+  User "1" --> "0..*" Community : owns
+
+  Community "1" --> "0..*" CommunityMember : has
+  User "1" --> "0..*" CommunityMember : has
+
+  Community "1" --> "0..*" Post : has
+  Community "1" --> "0..*" Question : has
+
+  Tag "0..*" --> "0..*" Post : tags
+  Tag "0..*" --> "0..*" Question : tags
+  Tag "0..*" --> "0..*" Community : tags
+
+  Post "1" --> "0..*" Comment : has
+  Question "1" --> "0..*" Comment : has
+  Comment "0..1" --> "0..*" Comment : parent/replies
+
+  Question "1" --> "0..*" Answer : has
+
+  Post "1" --> "0..*" PostVote : has
+  Question "1" --> "0..*" QuestionVote : has
+  Comment "1" --> "0..*" CommentVote : has
+  Answer "1" --> "0..*" AnswerVote : has
+
+  User "1" --> "0..*" PostVote : casts
+  User "1" --> "0..*" QuestionVote : casts
+  User "1" --> "0..*" CommentVote : casts
+  User "1" --> "0..*" AnswerVote : casts
+
+  User "1" --> "0..*" Follow : follower
+  User "1" --> "0..*" Follow : following
+
+  Community "1" --> "0..*" CommunityInvite : for
+  User "1" --> "0..*" CommunityInvite : invitedUser
+  User "1" --> "0..*" CommunityInvite : invitedBy
+
+  User "1" --> "0..*" Notification : receives
+  User "1" --> "0..*" Notification : acts
