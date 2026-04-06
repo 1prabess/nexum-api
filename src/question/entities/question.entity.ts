@@ -16,6 +16,7 @@ import {
 import { Comment } from 'src/comment/entities/comment.entity';
 import { QuestionUrgency } from '../enums/question-urgency.enum';
 import { QuestionVote } from './question-vote.entity';
+import { Answer } from 'src/answer/entities/answer.entity';
 
 @Entity('questions')
 export class Question {
@@ -43,7 +44,7 @@ export class Question {
 
   @ManyToOne(() => Community, (community) => community.questions, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: 'CASCADE',
   })
   community?: Community;
 
@@ -71,4 +72,10 @@ export class Question {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
+
+  @OneToMany(() => Answer, (answer) => answer.question)
+  answers: Answer[];
+
+  @Column({ nullable: true })
+  acceptedAnswerId?: number;
 }
