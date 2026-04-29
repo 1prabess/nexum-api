@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import type { ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 import dbConfig from './configs/db.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -24,7 +25,8 @@ import { NotificationModule } from './notification/notification.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env.dev',
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
+      envFilePath: ['.env.dev', '.env'],
       load: [dbConfig],
     }),
     TypeOrmModule.forRootAsync({
@@ -39,6 +41,8 @@ import { NotificationModule } from './notification/notification.module';
         database: dbConfiguration.name,
         synchronize: dbConfiguration.synchronize,
         autoLoadEntities: dbConfiguration.autoLoadEntities,
+        migrationsRun: dbConfiguration.runMigrations,
+        migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
       }),
     }),
     UserModule,

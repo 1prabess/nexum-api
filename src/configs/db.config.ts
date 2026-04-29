@@ -8,4 +8,5 @@ export default registerAs('dbConfig', () => ({
   name: process.env.DATABASE_NAME,
   synchronize: process.env.DATABASE_SYNC === 'true',
   autoLoadEntities: process.env.DATABASE_AUTOLOAD === 'true',
+  runMigrations: process.env.DATABASE_RUN_MIGRATIONS === 'true',
 }));
