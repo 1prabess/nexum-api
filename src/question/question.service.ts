@@ -210,6 +210,25 @@ export class QuestionService {
 
     if (!question) throw new NotFoundException('Question not found');
 
+    if (question.community?.visibility === CommunityVisibility.PRIVATE) {
+      if (!currentUserId) {
+        throw new ForbiddenException(
+          'You must join community to see the contents',
+        );
+      }
+
+      const isMember = await this.communityService.isMember(
+        question.community.id,
+        currentUserId,
+      );
+
+      if (!isMember) {
+        throw new ForbiddenException(
+          'You must join community to see the contents',
+        );
+      }
+    }
+
     return this.mapQuestionToDto(question, currentUserId);
   }
 
@@ -512,6 +531,51 @@ export class QuestionService {
       currentPage: page,
       limit,
       route: `${process.env.API_URL}/questions`,
+    });
+  }
+
+  // ------------------ GET QUESTIONS BY TAG ------------------
+  async getQuestionsByTag({
+    tagName,
+    page,
+    limit,
+    currentUserId,
+  }: {
+    tagName: string;
+    page: number;
+    limit: number;
+    currentUserId: number;
+  }): Promise<PaginatedResponseDto<QuestionResponseDto>> {
+    const normalizedTag = tagName.toLowerCase().trim().replace(/\s+/g, '-');
+
+    const query = this.questionRepository
+      .createQueryBuilder('question')
+      .leftJoinAndSelect('question.author', 'author')
+      .leftJoinAndSelect('question.tags', 'tags')
+      .leftJoinAndSelect('question.votes', 'votes')
+      .leftJoinAndSelect('votes.user', 'voteUser')
+      .leftJoinAndSelect('question.community', 'community')
+      .leftJoinAndSelect('question.answers', 'answers')
+      .leftJoinAndSelect('answers.author', 'answerAuthor')
+      .leftJoin('question.tags', 'tag')
+      .where('tag.name = :tagName', { tagName: normalizedTag })
+      .andWhere(
+        '(question.communityId IS NULL OR community.visibility = :visibility)',
+        { visibility: CommunityVisibility.PUBLIC },
+      )
+      .orderBy('question.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [questions, total] = await query.getManyAndCount();
+    const items = questions.map((q) => this.mapQuestionToDto(q, currentUserId));
+
+    return paginate({
+      items,
+      totalItems: total,
+      currentPage: page,
+      limit,
+      route: `${process.env.API_URL}/questions/tag/${encodeURIComponent(normalizedTag)}`,
     });
   }
 

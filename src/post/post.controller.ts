@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   Patch,
   ParseIntPipe,
   Post,
@@ -186,6 +187,55 @@ export class PostController {
     });
   }
 
+  // ------------------ GET POSTS BY TAG ------------------
+  @ApiOperation({ summary: 'Find posts by tag name' })
+  @ApiSuccessResponse(PaginatedResponseDto<PostResponseDto>, {
+    message: 'Posts by tag fetched successfully',
+    paginatedItemsType: PostResponseDto,
+  })
+  @ApiParam({
+    name: 'tagName',
+    description: 'Tag name (slug) to filter posts by',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'page',
+    description: 'Page number (starts from 1)',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Number of items per page',
+    required: false,
+    type: Number,
+  })
+  @Get('/posts/tag/:tagName')
+  @ResponseMessage('Posts by tag fetched successfully')
+  async getPostsByTag(
+    @Param('tagName') tagName: string,
+    @Query(
+      'page',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(1),
+    )
+    page: number,
+    @Query(
+      'limit',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(10),
+    )
+    limit: number,
+    @CurrentUser('id') currentUserId: number,
+  ): Promise<PaginatedResponseDto<PostResponseDto>> {
+    return this.postService.getPostsByTag({
+      tagName,
+      page,
+      limit,
+      currentUserId,
+    });
+  }
+
   // ------------------ GET SINGLE POST ------------------
   @ApiOperation({ summary: 'Find a specific post' })
   @ApiSuccessResponse(PostResponseDto, {
@@ -260,7 +310,7 @@ export class PostController {
   @ResponseMessage('Post voters fetched successfully')
   getPostVoters(
     @Param('postId', ParseIntPipe) postId: number,
-    @Query('type') type: VoteType,
+    @Query('type', new ParseEnumPipe(VoteType)) type: VoteType,
   ): Promise<AuthorSummaryDto[]> {
     return this.postService.getPostVoters(postId, type);
   }

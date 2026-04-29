@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   Patch,
   ParseIntPipe,
   Post,
@@ -83,7 +84,7 @@ export class QuestionController {
   @ResponseMessage('Questions fetched successfully')
   async getGlobalQuestionsFeed(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10)) limit: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @CurrentUser() user: ICurrentUser,
   ) {
     return this.questionService.getGlobalQuestionsFeed({
@@ -102,7 +103,7 @@ export class QuestionController {
   @ResponseMessage('Following questions fetched successfully')
   async getFollowingQuestionsFeed(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10)) limit: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @CurrentUser() user: ICurrentUser,
   ) {
     return this.questionService.getFollowingQuestionsFeed({
@@ -146,7 +147,7 @@ export class QuestionController {
   @ResponseMessage('Question voters fetched successfully')
   getQuestionVoters(
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Query('type') type: VoteType,
+    @Query('type', new ParseEnumPipe(VoteType)) type: VoteType,
   ): Promise<AuthorSummaryDto[]> {
     return this.questionService.getQuestionVoters(questionId, type);
   }
@@ -188,6 +189,55 @@ export class QuestionController {
   ): Promise<PaginatedResponseDto<QuestionResponseDto>> {
     return this.questionService.getQuestionsByUser({
       userId,
+      page,
+      limit,
+      currentUserId,
+    });
+  }
+
+  // ------------------ GET QUESTIONS BY TAG ------------------
+  @ApiOperation({ summary: 'Find questions by tag name' })
+  @ApiSuccessResponse(PaginatedResponseDto<QuestionResponseDto>, {
+    message: 'Questions by tag fetched successfully',
+    paginatedItemsType: QuestionResponseDto,
+  })
+  @ApiParam({
+    name: 'tagName',
+    description: 'Tag name (slug) to filter questions by',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'page',
+    description: 'Page number (starts from 1)',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Number of items per page',
+    required: false,
+    type: Number,
+  })
+  @Get('/questions/tag/:tagName')
+  @ResponseMessage('Questions by tag fetched successfully')
+  async getQuestionsByTag(
+    @Param('tagName') tagName: string,
+    @Query(
+      'page',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(1),
+    )
+    page: number,
+    @Query(
+      'limit',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(10),
+    )
+    limit: number,
+    @CurrentUser('id') currentUserId: number,
+  ): Promise<PaginatedResponseDto<QuestionResponseDto>> {
+    return this.questionService.getQuestionsByTag({
+      tagName,
       page,
       limit,
       currentUserId,

@@ -208,6 +208,51 @@ export class PostService {
     });
   }
 
+  // ------------------ GET POSTS BY TAG ------------------
+  async getPostsByTag({
+    tagName,
+    page,
+    limit,
+    currentUserId,
+  }: {
+    tagName: string;
+    page: number;
+    limit: number;
+    currentUserId: number;
+  }): Promise<PaginatedResponseDto<PostResponseDto>> {
+    const normalizedTag = tagName.toLowerCase().trim().replace(/\s+/g, '-');
+
+    const query = this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.tags', 'tags')
+      .leftJoinAndSelect('post.votes', 'votes')
+      .leftJoinAndSelect('votes.user', 'voteUser')
+      .leftJoinAndSelect('post.community', 'community')
+      .leftJoin('post.tags', 'tag')
+      .loadRelationCountAndMap('post.commentCount', 'post.comments')
+      .where('tag.name = :tagName', { tagName: normalizedTag })
+      .andWhere(
+        '(post.communityId IS NULL OR community.visibility = :visibility)',
+        { visibility: CommunityVisibility.PUBLIC },
+      )
+      .orderBy('post.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [posts, total] = await query.getManyAndCount();
+
+    const items = posts.map((post) => this.mapPostToDto(post, currentUserId));
+
+    return paginate({
+      items,
+      totalItems: total,
+      currentPage: page,
+      limit,
+      route: `${process.env.API_URL}/posts/tag/${encodeURIComponent(normalizedTag)}`,
+    });
+  }
+
   // ------------------ GET POSTS BY COMMUNITY ------------------
   async getPostsByCommunity(
     communityId: number,
@@ -296,12 +341,32 @@ export class PostService {
       .leftJoinAndSelect('post.tags', 'tags')
       .leftJoinAndSelect('post.votes', 'votes')
       .leftJoinAndSelect('votes.user', 'voteUser')
+      .leftJoinAndSelect('post.community', 'community')
       .loadRelationCountAndMap('post.commentCount', 'post.comments')
       .where('post.id = :postId', { postId })
       .getOne();
 
     if (!post) {
       throw new NotFoundException('Post not found');
+    }
+
+    if (post.community?.visibility === CommunityVisibility.PRIVATE) {
+      if (!currentUserId) {
+        throw new ForbiddenException(
+          'You must join community to see the contents',
+        );
+      }
+
+      const isMember = await this.communityService.isMember(
+        post.community.id,
+        currentUserId,
+      );
+
+      if (!isMember) {
+        throw new ForbiddenException(
+          'You must join community to see the contents',
+        );
+      }
     }
 
     return this.mapPostToDto(post, currentUserId);
