@@ -27,6 +27,7 @@ export class AuthController {
   @ResponseMessage('Login successful')
   @UseGuards(LocalAuthGuard)
   async login(
+    @Body() _loginUserDto: LoginUserDto,
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {

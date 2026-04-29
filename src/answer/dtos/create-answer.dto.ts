@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
@@ -9,6 +10,7 @@ import {
 
 export class CreateAnswerDto {
   @ApiProperty({ example: 'Here is my answer to the question' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MinLength(1)

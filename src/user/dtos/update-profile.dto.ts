@@ -1,17 +1,33 @@
-import { IsOptional, IsString, MaxLength, IsUrl } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsUrl,
+  Matches,
+  MinLength,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { USERNAME_REGEX } from 'src/common/constants/validation.constants';
 
 export class UpdateProfileDto {
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @MinLength(3)
+  @MaxLength(30)
+  @Matches(USERNAME_REGEX, {
+    message:
+      'Username must be 3-30 characters and contain only letters, numbers, or underscores',
+  })
   @ApiPropertyOptional({
     description: 'Username of the user',
-    maxLength: 50,
+    maxLength: 30,
     example: 'john_doe',
   })
   username?: string;
 
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -22,6 +38,11 @@ export class UpdateProfileDto {
   })
   fullName?: string;
 
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    return trimmed === '' ? null : trimmed;
+  })
   @IsOptional()
   @IsString()
   @MaxLength(255)
@@ -30,8 +51,9 @@ export class UpdateProfileDto {
     maxLength: 255,
     example: 'I love coding and sharing knowledge',
   })
-  bio?: string;
+  bio?: string | null;
 
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsUrl()
   @ApiPropertyOptional({
@@ -40,6 +62,7 @@ export class UpdateProfileDto {
   })
   avatar?: string;
 
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsUrl()
   @ApiPropertyOptional({

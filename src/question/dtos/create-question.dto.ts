@@ -1,4 +1,5 @@
 import {
+  ArrayUnique,
   IsString,
   MinLength,
   MaxLength,
@@ -7,9 +8,12 @@ import {
   ArrayNotEmpty,
   IsInt,
   IsOptional,
+  IsEnum,
+  IsPositive,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionUrgency } from '../enums/question-urgency.enum';
+import { Transform } from 'class-transformer';
 
 export class CreateQuestionDto {
   @ApiProperty({
@@ -18,9 +22,11 @@ export class CreateQuestionDto {
     maxLength: 200,
     example: 'How do I optimize TypeORM queries?',
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MinLength(5)
   @MaxLength(200)
+  @Matches(/\S/, { message: 'Title cannot be empty' })
   title: string;
 
   @ApiProperty({
@@ -53,6 +59,7 @@ export class CreateQuestionDto {
       },
     ]),
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MinLength(10)
   @Matches(/\S/, { message: 'Content cannot be empty' })
@@ -66,6 +73,8 @@ export class CreateQuestionDto {
   @IsArray()
   @ArrayNotEmpty({ message: 'At least one tag is required' })
   @IsInt({ each: true })
+  @IsPositive({ each: true })
+  @ArrayUnique({ message: 'Duplicate tags are not allowed' })
   tagIds: number[];
 
   @ApiPropertyOptional({
@@ -74,6 +83,7 @@ export class CreateQuestionDto {
     default: QuestionUrgency.MEDIUM,
   })
   @IsOptional()
+  @IsEnum(QuestionUrgency)
   urgency?: QuestionUrgency;
 
   @ApiPropertyOptional({
@@ -82,5 +92,6 @@ export class CreateQuestionDto {
   })
   @IsOptional()
   @IsInt()
+  @IsPositive()
   communityId?: number;
 }

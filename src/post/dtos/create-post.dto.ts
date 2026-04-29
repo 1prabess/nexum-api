@@ -1,4 +1,5 @@
 import {
+  ArrayUnique,
   IsString,
   MinLength,
   MaxLength,
@@ -6,8 +7,10 @@ import {
   IsArray,
   IsInt,
   ArrayNotEmpty,
+  IsPositive,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class CreatePostDto {
   @ApiProperty({
@@ -16,9 +19,11 @@ export class CreatePostDto {
     maxLength: 200,
     example: 'My First Blog Post',
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MinLength(5)
   @MaxLength(200)
+  @Matches(/\S/, { message: 'Title cannot be empty' })
   title: string;
 
   @ApiProperty({
@@ -51,6 +56,7 @@ export class CreatePostDto {
       },
     ]),
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MinLength(10)
   @Matches(/\S/, { message: 'Content cannot be empty' })
@@ -64,5 +70,7 @@ export class CreatePostDto {
   @IsArray()
   @ArrayNotEmpty({ message: 'At least one tag is required' })
   @IsInt({ each: true })
+  @IsPositive({ each: true })
+  @ArrayUnique({ message: 'Duplicate tags are not allowed' })
   tagIds: number[];
 }

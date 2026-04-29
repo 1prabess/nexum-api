@@ -1,4 +1,5 @@
 import {
+  ArrayUnique,
   IsEnum,
   IsOptional,
   IsString,
@@ -7,9 +8,13 @@ import {
   IsArray,
   ArrayNotEmpty,
   IsInt,
+  IsPositive,
+  Matches,
+  MinLength,
 } from 'class-validator';
 import { CommunityVisibility } from '../enums/community-visibility.enum';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class CreateCommunityDto {
   @ApiProperty({
@@ -17,8 +22,11 @@ export class CreateCommunityDto {
     maxLength: 100,
     example: 'Tech Geeks',
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @MinLength(3)
   @MaxLength(100)
+  @Matches(/\S/, { message: 'Community name cannot be empty' })
   name: string;
 
   @ApiPropertyOptional({
@@ -26,9 +34,12 @@ export class CreateCommunityDto {
     maxLength: 255,
     example: 'A place for technology enthusiasts to share ideas.',
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsOptional()
+  @MinLength(5)
   @MaxLength(255)
+  @Matches(/\S/, { message: 'Description cannot be empty when provided' })
   description?: string;
 
   @ApiPropertyOptional({
@@ -42,7 +53,7 @@ export class CreateCommunityDto {
   @ApiPropertyOptional({
     example: 'https://example.com/avatar.png',
   })
-  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsUrl()
   avatar?: string;
@@ -50,7 +61,7 @@ export class CreateCommunityDto {
   @ApiPropertyOptional({
     example: 'https://example.com/cover.png',
   })
-  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsUrl()
   coverImage?: string;
@@ -63,5 +74,7 @@ export class CreateCommunityDto {
   @IsArray()
   @ArrayNotEmpty({ message: 'At least one tag is required' })
   @IsInt({ each: true })
+  @IsPositive({ each: true })
+  @ArrayUnique({ message: 'Duplicate tags are not allowed' })
   tagIds: number[];
 }
