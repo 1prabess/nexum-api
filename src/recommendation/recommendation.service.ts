@@ -55,7 +55,7 @@ export class RecommendationService {
       .limit(3)
       .getRawMany();
 
-    if (!topTags.length) return []; // no voting history
+    if (!topTags.length) return [];
 
     const tagScoreMap = new Map<number, number>();
     for (const tag of topTags) {
@@ -70,12 +70,9 @@ export class RecommendationService {
       .createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author')
       .leftJoinAndSelect('post.tags', 'tags')
-      .leftJoinAndSelect(
-        'post.votes',
-        'votes',
-        'votes.userId = :userId',
-        { userId },
-      )
+      .leftJoinAndSelect('post.votes', 'votes', 'votes.userId = :userId', {
+        userId,
+      })
       .leftJoinAndSelect('post.community', 'community') // join community
       .loadRelationCountAndMap('post.commentCount', 'post.comments')
       .innerJoin('post.tags', 'targetTags', 'targetTags.id IN (:...tagIds)', {
@@ -196,12 +193,9 @@ export class RecommendationService {
       .createQueryBuilder('question')
       .leftJoinAndSelect('question.author', 'author')
       .leftJoinAndSelect('question.tags', 'tags')
-      .leftJoinAndSelect(
-        'question.votes',
-        'votes',
-        'votes.userId = :userId',
-        { userId },
-      )
+      .leftJoinAndSelect('question.votes', 'votes', 'votes.userId = :userId', {
+        userId,
+      })
       .leftJoinAndSelect('question.community', 'community')
       .loadRelationCountAndMap('question.answerCount', 'question.answers')
       .innerJoin(
@@ -323,9 +317,14 @@ export class RecommendationService {
       .createQueryBuilder('community')
       .leftJoinAndSelect('community.owner', 'owner')
       .leftJoinAndSelect('community.tags', 'tags')
-      .innerJoin('community.tags', 'targetTags', 'targetTags.id IN (:...tagIds)', {
-        tagIds,
-      })
+      .innerJoin(
+        'community.tags',
+        'targetTags',
+        'targetTags.id IN (:...tagIds)',
+        {
+          tagIds,
+        },
+      )
       .where('community.visibility = :visibility', {
         visibility: CommunityVisibility.PUBLIC,
       });

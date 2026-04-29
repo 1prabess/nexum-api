@@ -1,4 +1,11 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  DefaultValuePipe,
+  Get,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { SearchService } from './search.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -30,11 +37,14 @@ export class SearchController {
   @ResponseMessage('Search results fetched successfully')
   async search(
     @Query('q') query: string,
-    @Query('top') top?: string,
+    @Query(
+      'top',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(20),
+    )
+    topN: number,
     @CurrentUser() user?: ICurrentUser,
   ) {
-    const topN = top ? parseInt(top) : 20;
-
-    return this.searchService.search(query, topN, user?.id);
+    return this.searchService.search(query, Math.min(Math.max(topN, 1), 100), user?.id);
   }
 }

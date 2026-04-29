@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { Community } from './entities/community.entity';
 import { CommunityMember } from './entities/community-member.entity';
 import { CommunityInvite } from './entities/community-invite.entity';
@@ -60,12 +60,7 @@ export class CommunityService {
     user: ICurrentUser,
     createCommunityDto: CreateCommunityDto,
   ): Promise<CommunityResponseDto> {
-    // Check for existing community with same name
-    const exists = await this.communityRepository.findOne({
-      where: { name: createCommunityDto.name },
-    });
-    if (exists)
-      throw new BadRequestException('Community with same name already exists');
+    await this.ensureCommunityNameAvailable(createCommunityDto.name);
 
     // Ensure at least one tag is selected
     if (createCommunityDto.tagIds.length < 1) {
@@ -89,7 +84,7 @@ export class CommunityService {
       tags,
     });
 
-    await this.communityRepository.save(community);
+    await this.saveCommunityOrThrowNameError(community);
 
     // Create owner as ADMIN member
     const ownerMember = this.communityMemberRepository.create({
@@ -127,6 +122,13 @@ export class CommunityService {
       throw new ForbiddenException('You are not the owner of this community');
     }
 
+    if (
+      updateCommunityDto.name &&
+      updateCommunityDto.name.toLowerCase() !== community.name.toLowerCase()
+    ) {
+      await this.ensureCommunityNameAvailable(updateCommunityDto.name, communityId);
+    }
+
     // ------------------ HANDLE TAG UPDATES ------------------
     if (updateCommunityDto.tagIds) {
       if (updateCommunityDto.tagIds.length < 1) {
@@ -143,7 +145,7 @@ export class CommunityService {
 
     // Merge update fields into community
     Object.assign(community, updateCommunityDto);
-    await this.communityRepository.save(community);
+    await this.saveCommunityOrThrowNameError(community);
 
     const updated = await this.communityRepository.findOne({
       where: { id: community.id },
@@ -153,6 +155,42 @@ export class CommunityService {
     return plainToInstance(CommunityResponseDto, updated, {
       excludeExtraneousValues: true,
     });
+  }
+
+  private async ensureCommunityNameAvailable(
+    name: string,
+    excludeCommunityId?: number,
+  ): Promise<void> {
+    const normalizedName = name.trim().toLowerCase();
+
+    const existing = await this.communityRepository
+      .createQueryBuilder('community')
+      .where('LOWER(community.name) = :name', { name: normalizedName })
+      .getOne();
+
+    if (existing && existing.id !== excludeCommunityId) {
+      throw new BadRequestException('Community name is already taken');
+    }
+  }
+
+  private async saveCommunityOrThrowNameError(
+    community: Community,
+  ): Promise<Community> {
+    try {
+      return await this.communityRepository.save(community);
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        typeof (error as { driverError?: { code?: string } }).driverError?.code ===
+          'string' &&
+        (error as { driverError?: { code?: string } }).driverError?.code ===
+          '23505'
+      ) {
+        throw new BadRequestException('Community name is already taken');
+      }
+
+      throw error;
+    }
   }
 
   // ------------------ GET COMMUNITY FEED QUESTIONS ------------------
@@ -334,11 +372,10 @@ export class CommunityService {
       throw new BadRequestException('User already has a pending invite');
     }
 
-    if (existingInvite?.status === CommunityInviteStatus.ACCEPTED) {
-      throw new BadRequestException('User already accepted the invite');
-    }
-
-    if (existingInvite?.status === CommunityInviteStatus.DECLINED) {
+    if (
+      existingInvite?.status === CommunityInviteStatus.ACCEPTED ||
+      existingInvite?.status === CommunityInviteStatus.DECLINED
+    ) {
       existingInvite.status = CommunityInviteStatus.PENDING;
       existingInvite.invitedBy = user as any;
       await this.communityInviteRepository.save(existingInvite);

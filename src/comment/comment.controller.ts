@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   Patch,
   ParseIntPipe,
   Post,
@@ -72,7 +73,7 @@ export class CommentController {
   @ResponseMessage('Vote recorded successfully')
   vote(
     @Param('commentId', ParseIntPipe) commentId: number,
-    @Param('type') type: VoteType,
+    @Param('type', new ParseEnumPipe(VoteType)) type: VoteType,
     @CurrentUser() user: ICurrentUser,
   ) {
     return this.commentService.vote(user.id, commentId, type);

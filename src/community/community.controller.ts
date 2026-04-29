@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Param,
@@ -200,8 +201,18 @@ export class CommunityController {
   @ResponseMessage('Community questions fetched successfully')
   async getCommunityFeedQuestions(
     @Param('communityId', ParseIntPipe) communityId: number,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query(
+      'page',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(1),
+    )
+    page: number,
+    @Query(
+      'limit',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(10),
+    )
+    limit: number,
     @CurrentUser() user: ICurrentUser,
   ): Promise<PaginatedResponseDto<QuestionResponseDto>> {
     return this.communityService.getCommunityFeedQuestions({
@@ -225,8 +236,18 @@ export class CommunityController {
   @ResponseMessage('Community posts fetched successfully')
   async getCommunityFeedPosts(
     @Param('communityId', ParseIntPipe) communityId: number,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query(
+      'page',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(1),
+    )
+    page: number,
+    @Query(
+      'limit',
+      new ParseIntPipe({ optional: true }),
+      new DefaultValuePipe(10),
+    )
+    limit: number,
     @CurrentUser() user: ICurrentUser,
   ): Promise<PaginatedResponseDto<PostResponseDto>> {
     return this.communityService.getCommunityFeedPosts({

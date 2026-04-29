@@ -12,6 +12,12 @@ import { ResponseMessage } from 'src/common/decorators/response-message.decorato
 import { ApiSuccessResponse } from 'src/common/decorators/api-success-response.decorator';
 import { UploadResponseDto } from './dtos/upload-response.dto';
 
+const parsedUploadLimitMb = Number(process.env.UPLOAD_IMAGE_MAX_SIZE_MB ?? 50);
+const uploadLimitMb = Number.isFinite(parsedUploadLimitMb)
+  ? Math.max(parsedUploadLimitMb, 1)
+  : 50;
+const uploadLimitBytes = uploadLimitMb * 1024 * 1024;
+
 @ApiTags('Cloudinary')
 @Controller('cloudinary/upload')
 export class CloudinaryController {
@@ -39,7 +45,7 @@ export class CloudinaryController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 15 * 1024 * 1024 },
+      limits: { fileSize: uploadLimitBytes },
     }),
   )
   async uploadImage(
