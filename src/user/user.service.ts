@@ -13,11 +13,39 @@ import { FollowService } from 'src/follow/follow.service';
 import { Community } from 'src/community/entities/community.entity';
 import { CommunityMember } from 'src/community/entities/community-member.entity';
 import { CommunityVisibility } from 'src/community/enums/community-visibility.enum';
+import { VoteType } from 'src/common/enums/vote-type.enum';
+import { PostVote } from 'src/post/entities/post-vote.entity';
+import { QuestionVote } from 'src/question/entities/question-vote.entity';
+import { AnswerVote } from 'src/answer/entities/answer-vote.entity';
+import { CommentVote } from 'src/comment/entities/comment-vote.entity';
+import { Answer } from 'src/answer/entities/answer.entity';
+import { Post } from 'src/post/entities/post.entity';
+import { Question } from 'src/question/entities/question.entity';
+import { Comment } from 'src/comment/entities/comment.entity';
 import { Repository } from 'typeorm';
 import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { UserProfileResponseDto } from './dtos/user-profile.response.dto';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { User } from './user.entity';
+
+type BadgeTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+type UserBadge = {
+  key: string;
+  name: string;
+  description: string;
+  tier: BadgeTier;
+  iconKey: string;
+};
+
+type ReputationMetrics = {
+  reputation: number;
+  postCount: number;
+  questionCount: number;
+  answerCount: number;
+  commentCount: number;
+  acceptedAnswersCount: number;
+  upvotesReceivedOnComments: number;
+};
 
 @Injectable()
 export class UserService {
@@ -28,6 +56,22 @@ export class UserService {
     private readonly communityRepository: Repository<Community>,
     @InjectRepository(CommunityMember)
     private readonly communityMemberRepository: Repository<CommunityMember>,
+    @InjectRepository(PostVote)
+    private readonly postVoteRepository: Repository<PostVote>,
+    @InjectRepository(QuestionVote)
+    private readonly questionVoteRepository: Repository<QuestionVote>,
+    @InjectRepository(AnswerVote)
+    private readonly answerVoteRepository: Repository<AnswerVote>,
+    @InjectRepository(CommentVote)
+    private readonly commentVoteRepository: Repository<CommentVote>,
+    @InjectRepository(Answer)
+    private readonly answerRepository: Repository<Answer>,
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
+    @InjectRepository(Question)
+    private readonly questionRepository: Repository<Question>,
+    @InjectRepository(Comment)
+    private readonly commentRepository: Repository<Comment>,
     private readonly HashingProvider: HashingProvider,
     @Inject(forwardRef(() => FollowService))
     private readonly followService: FollowService,
@@ -40,14 +84,17 @@ export class UserService {
     password: string,
     avatar?: string,
   ): Promise<UserResponseDto> {
-    const existingEmail = await this.findByEmail(email);
+    const normalizedEmail = this.normalizeEmail(email);
+    const normalizedUsername = this.normalizeUsername(username);
+
+    const existingEmail = await this.findByEmail(normalizedEmail);
     if (existingEmail) {
       throw new UnauthorizedException(
         'User with the same email already exists',
       );
     }
 
-    const existingUserName = await this.findByUserName(username);
+    const existingUserName = await this.findByUserName(normalizedUsername);
     if (existingUserName) {
       throw new UnauthorizedException(
         'User with the same username already exists',
@@ -57,8 +104,8 @@ export class UserService {
     const hashedPassword = await this.HashingProvider.hash(password);
 
     const user = this.userRepository.create({
-      username,
-      email,
+      username: normalizedUsername,
+      email: normalizedEmail,
       password: hashedPassword,
       avatar,
     });
@@ -94,10 +141,10 @@ export class UserService {
     const likeQuery = `%${normalizedQuery}%`;
     const prefixQuery = `${normalizedQuery}%`;
 
-    const users = await this.userRepository
+    const queryBuilder = this.userRepository
       .createQueryBuilder('user')
       .where(
-        '(user.username ILIKE :likeQuery OR user.fullName ILIKE :likeQuery)',
+        '(user.username ILIKE :likeQuery OR user.fullName ILIKE :likeQuery OR user.email ILIKE :likeQuery)',
         {
           likeQuery,
         },
@@ -105,26 +152,28 @@ export class UserService {
       .addSelect(
         `CASE
           WHEN LOWER(user.username) = LOWER(:exactQuery) THEN 0
+          WHEN LOWER(user.email) = LOWER(:exactQuery) THEN 1
           WHEN user.username ILIKE :prefixQuery THEN 1
           WHEN user.fullName ILIKE :prefixQuery THEN 2
-          ELSE 3
+          WHEN user.email ILIKE :prefixQuery THEN 3
+          ELSE 4
         END`,
         'matchRank',
       )
       .setParameter('exactQuery', normalizedQuery)
       .setParameter('prefixQuery', prefixQuery)
-      .setParameter('currentUserId', currentUserId)
-      .orderBy('matchRank', 'ASC')
+      .orderBy('"matchRank"', 'ASC')
       .addOrderBy('user.followersCount', 'DESC')
       .addOrderBy('user.createdAt', 'DESC')
-      .take(12)
-      .getMany();
+      .take(12);
 
-    const filteredUsers = excludeCurrentUser
-      ? users.filter((user) => user.id !== currentUserId)
-      : users;
+    if (excludeCurrentUser) {
+      queryBuilder.andWhere('user.id != :currentUserId', { currentUserId });
+    }
 
-    return plainToInstance(UserResponseDto, filteredUsers, {
+    const users = await queryBuilder.getMany();
+
+    return plainToInstance(UserResponseDto, users, {
       excludeExtraneousValues: true,
     });
   }
@@ -138,12 +187,16 @@ export class UserService {
 
   // ------------------ FIND BY EMAIL ------------------
   async findByEmail(email: string): Promise<User | null> {
-    return await this.userRepository.findOneBy({ email });
+    return await this.userRepository.findOneBy({
+      email: this.normalizeEmail(email),
+    });
   }
 
   // ------------------ FIND BY USERNAME ------------------
   async findByUserName(username: string): Promise<User | null> {
-    return await this.userRepository.findOneBy({ username });
+    return await this.userRepository.findOneBy({
+      username: this.normalizeUsername(username),
+    });
   }
 
   // ------------------ FIND USER WITH REFRESH TOKEN ------------------
@@ -214,6 +267,9 @@ export class UserService {
     const profile = plainToInstance(UserProfileResponseDto, user, {
       excludeExtraneousValues: true,
     });
+    const metrics = await this.computeReputationMetrics(userId);
+    profile.reputation = metrics.reputation;
+    profile.badges = this.buildBadges(metrics);
 
     const visibleCommunityIds = new Set<number>(
       viewerMemberships.map((membership) => membership.community.id),
@@ -283,6 +339,9 @@ export class UserService {
     }
 
     Object.assign(user, updateProfileDto);
+    if (updateProfileDto.username) {
+      user.username = this.normalizeUsername(updateProfileDto.username);
+    }
 
     const updated = await this.userRepository.save(user);
 
@@ -307,5 +366,219 @@ export class UserService {
 
   async decrementFollowersCount(userId: number): Promise<void> {
     await this.userRepository.decrement({ id: userId }, 'followersCount', 1);
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  private normalizeUsername(username: string): string {
+    return username.trim().toLowerCase();
+  }
+
+  private async computeReputationMetrics(
+    userId: number,
+  ): Promise<ReputationMetrics> {
+    const [
+      postUpvotes,
+      questionUpvotes,
+      answerUpvotes,
+      commentUpvotes,
+      acceptedAnswersCount,
+      postCount,
+      questionCount,
+      answerCount,
+      commentCount,
+    ] = await Promise.all([
+      this.postVoteRepository
+        .createQueryBuilder('vote')
+        .innerJoin('vote.post', 'post')
+        .where('post.authorId = :userId', { userId })
+        .andWhere('vote.type = :voteType', { voteType: VoteType.UP })
+        .getCount(),
+      this.questionVoteRepository
+        .createQueryBuilder('vote')
+        .innerJoin('vote.question', 'question')
+        .where('question.authorId = :userId', { userId })
+        .andWhere('vote.type = :voteType', { voteType: VoteType.UP })
+        .getCount(),
+      this.answerVoteRepository
+        .createQueryBuilder('vote')
+        .innerJoin('vote.answer', 'answer')
+        .where('answer.authorId = :userId', { userId })
+        .andWhere('vote.type = :voteType', { voteType: VoteType.UP })
+        .getCount(),
+      this.commentVoteRepository
+        .createQueryBuilder('vote')
+        .innerJoin('vote.comment', 'comment')
+        .where('comment.authorId = :userId', { userId })
+        .andWhere('vote.type = :voteType', { voteType: VoteType.UP })
+        .getCount(),
+      this.answerRepository.count({
+        where: {
+          author: { id: userId },
+          isAccepted: true,
+        },
+      }),
+      this.postRepository.count({ where: { author: { id: userId } } }),
+      this.questionRepository.count({ where: { author: { id: userId } } }),
+      this.answerRepository.count({ where: { author: { id: userId } } }),
+      this.commentRepository.count({ where: { author: { id: userId } } }),
+    ]);
+
+    const reputation = Math.max(
+      0,
+      postUpvotes * 10 +
+        questionUpvotes * 12 +
+        answerUpvotes * 15 +
+        commentUpvotes * 4 +
+        acceptedAnswersCount * 25,
+    );
+
+    return {
+      reputation,
+      postCount,
+      questionCount,
+      answerCount,
+      commentCount,
+      acceptedAnswersCount,
+      upvotesReceivedOnComments: commentUpvotes,
+    };
+  }
+
+  private buildBadges(metrics: ReputationMetrics): UserBadge[] {
+    const badges: UserBadge[] = [];
+
+    if (metrics.postCount >= 1) {
+      badges.push({
+        key: 'first-post',
+        name: 'First Post',
+        description: 'Published your first post',
+        tier: 'BRONZE',
+        iconKey: 'file-text',
+      });
+    }
+
+    if (metrics.questionCount >= 10) {
+      badges.push({
+        key: 'curious-mind',
+        name: 'Curious Mind',
+        description: 'Asked 10+ questions',
+        tier: 'SILVER',
+        iconKey: 'compass',
+      });
+    }
+
+    if (metrics.answerCount >= 25) {
+      badges.push({
+        key: 'helpful-responder',
+        name: 'Helpful Responder',
+        description: 'Posted 25+ answers',
+        tier: 'GOLD',
+        iconKey: 'messages-square',
+      });
+    }
+
+    if (metrics.acceptedAnswersCount >= 1) {
+      badges.push({
+        key: 'accepted-bronze',
+        name: 'Accepted Contributor',
+        description: 'Received your first accepted answer',
+        tier: 'BRONZE',
+        iconKey: 'badge-check',
+      });
+    }
+
+    if (metrics.acceptedAnswersCount >= 5) {
+      badges.push({
+        key: 'accepted-silver',
+        name: 'Accepted Specialist',
+        description: 'Received 5 accepted answers',
+        tier: 'SILVER',
+        iconKey: 'shield-check',
+      });
+    }
+
+    if (metrics.acceptedAnswersCount >= 10) {
+      badges.push({
+        key: 'accepted-gold',
+        name: 'Accepted Authority',
+        description: 'Received 10 accepted answers',
+        tier: 'GOLD',
+        iconKey: 'award',
+      });
+    }
+
+    if (metrics.acceptedAnswersCount >= 20) {
+      badges.push({
+        key: 'accepted-mentor',
+        name: 'Accepted Mentor',
+        description: 'Received 20 accepted answers',
+        tier: 'GOLD',
+        iconKey: 'graduation-cap',
+      });
+    }
+
+    if (metrics.acceptedAnswersCount >= 50) {
+      badges.push({
+        key: 'accepted-master',
+        name: 'Accepted Master',
+        description: 'Received 50 accepted answers',
+        tier: 'PLATINUM',
+        iconKey: 'gem',
+      });
+    }
+
+    if (metrics.acceptedAnswersCount >= 100) {
+      badges.push({
+        key: 'accepted-legend',
+        name: 'Accepted Legend',
+        description: 'Received 100 accepted answers',
+        tier: 'PLATINUM',
+        iconKey: 'crown',
+      });
+    }
+
+    if (metrics.upvotesReceivedOnComments >= 10) {
+      badges.push({
+        key: 'helpful-commenter',
+        name: 'Helpful Commenter',
+        description: 'Received 10+ comment upvotes',
+        tier: 'SILVER',
+        iconKey: 'message-circle-heart',
+      });
+    }
+
+    if (metrics.reputation >= 100) {
+      badges.push({
+        key: 'rising-star',
+        name: 'Rising Star',
+        description: 'Reached 100 reputation',
+        tier: 'SILVER',
+        iconKey: 'sparkles',
+      });
+    }
+
+    if (metrics.reputation >= 500) {
+      badges.push({
+        key: 'community-expert',
+        name: 'Community Expert',
+        description: 'Reached 500 reputation',
+        tier: 'GOLD',
+        iconKey: 'star',
+      });
+    }
+
+    if (metrics.reputation >= 1500) {
+      badges.push({
+        key: 'nexum-legend',
+        name: 'Nexum Legend',
+        description: 'Reached 1500 reputation',
+        tier: 'PLATINUM',
+        iconKey: 'trophy',
+      });
+    }
+
+    return badges;
   }
 }

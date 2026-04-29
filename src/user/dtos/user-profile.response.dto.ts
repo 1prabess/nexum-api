@@ -20,6 +20,28 @@ class ProfileCommunitySummaryDto {
   visibility: CommunityVisibility;
 }
 
+class ReputationBadgeDto {
+  @ApiProperty({ example: 'rising-star' })
+  @Expose()
+  key: string;
+
+  @ApiProperty({ example: 'Rising Star' })
+  @Expose()
+  name: string;
+
+  @ApiProperty({ example: 'Earned 100+ reputation points' })
+  @Expose()
+  description: string;
+
+  @ApiProperty({ example: 'SILVER' })
+  @Expose()
+  tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+
+  @ApiProperty({ example: 'sparkles' })
+  @Expose()
+  iconKey: string;
+}
+
 export class UserProfileResponseDto {
   @ApiProperty({ description: 'User ID', example: 1 })
   @Expose()
@@ -68,6 +90,19 @@ export class UserProfileResponseDto {
   @ApiProperty({ description: 'Following count', example: 75 })
   @Expose()
   followingCount: number;
+
+  @ApiProperty({ description: 'Reputation points', example: 245 })
+  @Expose()
+  reputation: number;
+
+  @ApiProperty({
+    type: () => ReputationBadgeDto,
+    isArray: true,
+    description: 'Unlocked badges based on contributions and quality',
+  })
+  @Expose()
+  @Type(() => ReputationBadgeDto)
+  badges: ReputationBadgeDto[];
 
   @ApiProperty({
     description: 'Is current user following this user',

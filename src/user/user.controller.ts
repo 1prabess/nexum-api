@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Query,
   UseGuards,
@@ -77,7 +78,7 @@ export class UserController {
   @Get('/:id')
   @ResponseMessage('Profile fetched successfully')
   getUserProfile(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @CurrentUser() currentUser: ICurrentUser,
   ): Promise<UserProfileResponseDto> {
     return this.userService.getProfile(id, currentUser.id);
